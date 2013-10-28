@@ -392,6 +392,63 @@ struct alx_rrd {
 		(_data) |= ((_value) & _field ## _MASK) << _field ## _SHIFT;\
 	} while (0)
 
+/* Statistics counters collected by the MAC */
+struct alx_hw_stats {
+	/* rx */
+	unsigned long rx_ok;
+	unsigned long rx_bcast;
+	unsigned long rx_mcast;
+	unsigned long rx_pause;
+	unsigned long rx_ctrl;
+	unsigned long rx_fcs_err;
+	unsigned long rx_len_err;
+	unsigned long rx_byte_cnt;
+	unsigned long rx_runt;
+	unsigned long rx_frag;
+	unsigned long rx_sz_64B;
+	unsigned long rx_sz_127B;
+	unsigned long rx_sz_255B;
+	unsigned long rx_sz_511B;
+	unsigned long rx_sz_1023B;
+	unsigned long rx_sz_1518B;
+	unsigned long rx_sz_max;
+	unsigned long rx_ov_sz;
+	unsigned long rx_ov_rxf;
+	unsigned long rx_ov_rrd;
+	unsigned long rx_align_err;
+	unsigned long rx_bc_byte_cnt;
+	unsigned long rx_mc_byte_cnt;
+	unsigned long rx_err_addr;
+
+	/* tx */
+	unsigned long tx_ok;
+	unsigned long tx_bcast;
+	unsigned long tx_mcast;
+	unsigned long tx_pause;
+	unsigned long tx_exc_defer;
+	unsigned long tx_ctrl;
+	unsigned long tx_defer;
+	unsigned long tx_byte_cnt;
+	unsigned long tx_sz_64B;
+	unsigned long tx_sz_127B;
+	unsigned long tx_sz_255B;
+	unsigned long tx_sz_511B;
+	unsigned long tx_sz_1023B;
+	unsigned long tx_sz_1518B;
+	unsigned long tx_sz_max;
+	unsigned long tx_single_col;
+	unsigned long tx_multi_col;
+	unsigned long tx_late_col;
+	unsigned long tx_abort_col;
+	unsigned long tx_underrun;
+	unsigned long tx_trd_eop;
+	unsigned long tx_len_err;
+	unsigned long tx_trunc;
+	unsigned long tx_bc_byte_cnt;
+	unsigned long tx_mc_byte_cnt;
+	unsigned long update;
+};
+
 struct alx_hw {
 	struct pci_dev *pdev;
 	u8 __iomem *hw_addr;
@@ -424,6 +481,9 @@ struct alx_hw {
 
 	/* PHY link patch flag */
 	bool lnk_patch;
+
+	struct alx_hw_stats stats;
+	struct alx_hw_stats hw_stats;
 };
 
 static inline int alx_hw_revision(struct alx_hw *hw)
@@ -491,6 +551,7 @@ bool alx_phy_configured(struct alx_hw *hw);
 void alx_configure_basic(struct alx_hw *hw);
 void alx_disable_rss(struct alx_hw *hw);
 bool alx_get_phy_info(struct alx_hw *hw);
+void __alx_update_hw_stats(struct alx_hw *hw);
 
 static inline u32 alx_speed_to_ethadv(int speed, u8 duplex)
 {

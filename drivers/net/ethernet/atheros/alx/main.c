@@ -51,6 +51,15 @@
 
 const char alx_drv_name[] = "alx";
 
+/* alx_update_hw_stats - Update the board statistics counters. */
+static void alx_update_hw_stats(struct alx_priv *adpt)
+{
+	/* FIXME?
+	if (ALX_FLAG(adpt, HALT) || ALX_FLAG(adpt, RESETING))
+		return;
+	*/
+	__alx_update_hw_stats(&adpt->hw);
+}
 
 static void alx_free_txbuf(struct alx_priv *alx, int entry)
 {
@@ -177,6 +186,11 @@ static bool alx_clean_tx_irq(struct alx_priv *alx)
 static void alx_schedule_link_check(struct alx_priv *alx)
 {
 	schedule_work(&alx->link_check_wk);
+}
+
+static void alx_schedule_update_stats(struct alx_priv *alx)
+{
+	schedule_work(&alx->update_stats_wk);
 }
 
 static void alx_schedule_reset(struct alx_priv *alx)
@@ -324,6 +338,9 @@ static irqreturn_t alx_intr_handle(struct alx_priv *alx, u32 intr)
 		alx->int_mask &= ~ALX_ISR_ALL_QUEUES;
 		write_int_mask = true;
 	}
+
+	if (intr & ALX_ISR_SMB)
+		alx_schedule_update_stats(alx);
 
 	if (write_int_mask)
 		alx_write_mem32(hw, ALX_IMR, alx->int_mask);
@@ -971,6 +988,17 @@ static void alx_link_check(struct work_struct *work)
 	rtnl_unlock();
 }
 
+static void alx_update_stats(struct work_struct *work)
+{
+	struct alx_priv *alx;
+
+	alx = container_of(work, struct alx_priv, update_stats_wk);
+
+	rtnl_lock();
+	__alx_update_hw_stats(&alx->hw);
+	rtnl_unlock();
+};
+
 static void alx_reset(struct work_struct *work)
 {
 	struct alx_priv *alx = container_of(work, struct alx_priv, reset_wk);
@@ -1166,6 +1194,54 @@ static void alx_poll_controller(struct net_device *netdev)
 }
 #endif
 
+/* alx_get_stats - Get System Network Statistics
+ *
+ * Returns the address of the device statistics structure.
+ * The statistics are actually updated from the timer callback.
+ */
+static struct net_device_stats *alx_get_stats(struct net_device *netdev)
+{
+	struct alx_priv *adpt = netdev_priv(netdev);
+	struct net_device_stats *net_stats = &netdev->stats;
+	struct alx_hw_stats *hw_stats = &adpt->hw.stats;
+
+	spin_lock(&adpt->stats_lock);
+
+	alx_update_hw_stats(adpt);
+
+	net_stats->tx_packets = hw_stats->tx_ok;
+	net_stats->tx_bytes   = hw_stats->tx_byte_cnt;
+	net_stats->rx_packets = hw_stats->rx_ok;
+	net_stats->rx_bytes   = hw_stats->rx_byte_cnt;
+	net_stats->multicast  = hw_stats->rx_mcast;
+	net_stats->collisions = hw_stats->tx_single_col +
+				hw_stats->tx_multi_col * 2 +
+				hw_stats->tx_late_col + hw_stats->tx_abort_col;
+
+	net_stats->rx_errors  = hw_stats->rx_frag + hw_stats->rx_fcs_err +
+				hw_stats->rx_len_err + hw_stats->rx_ov_sz +
+				hw_stats->rx_ov_rrd + hw_stats->rx_align_err;
+
+	net_stats->rx_fifo_errors   = hw_stats->rx_ov_rxf;
+	net_stats->rx_length_errors = hw_stats->rx_len_err;
+	net_stats->rx_crc_errors    = hw_stats->rx_fcs_err;
+	net_stats->rx_frame_errors  = hw_stats->rx_align_err;
+	net_stats->rx_over_errors   = hw_stats->rx_ov_rrd + hw_stats->rx_ov_rxf;
+
+	net_stats->rx_missed_errors = hw_stats->rx_ov_rrd + hw_stats->rx_ov_rxf;
+
+	net_stats->tx_errors = hw_stats->tx_late_col + hw_stats->tx_abort_col +
+			       hw_stats->tx_underrun + hw_stats->tx_trunc;
+
+	net_stats->tx_aborted_errors = hw_stats->tx_abort_col;
+	net_stats->tx_fifo_errors    = hw_stats->tx_underrun;
+	net_stats->tx_window_errors  = hw_stats->tx_late_col;
+
+	spin_unlock(&adpt->stats_lock);
+
+	return net_stats;
+}
+
 static const struct net_device_ops alx_netdev_ops = {
 	.ndo_open               = alx_open,
 	.ndo_stop               = alx_stop,
@@ -1180,6 +1256,7 @@ static const struct net_device_ops alx_netdev_ops = {
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	.ndo_poll_controller    = alx_poll_controller,
 #endif
+	.ndo_get_stats          = alx_get_stats,
 };
 
 static int alx_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
@@ -1324,6 +1401,7 @@ static int alx_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	INIT_WORK(&alx->link_check_wk, alx_link_check);
 	INIT_WORK(&alx->reset_wk, alx_reset);
+	INIT_WORK(&alx->update_stats_wk, alx_update_stats);
 	netif_carrier_off(netdev);
 
 	err = register_netdev(netdev);
@@ -1356,6 +1434,7 @@ static void alx_remove(struct pci_dev *pdev)
 
 	cancel_work_sync(&alx->link_check_wk);
 	cancel_work_sync(&alx->reset_wk);
+	cancel_work_sync(&alx->update_stats_wk);
 
 	/* restore permanent mac address */
 	alx_set_macaddr(hw, hw->perm_addr);

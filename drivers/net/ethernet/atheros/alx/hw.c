@@ -1050,3 +1050,28 @@ bool alx_get_phy_info(struct alx_hw *hw)
 
 	return true;
 }
+
+void __alx_update_hw_stats(struct alx_hw *hw)
+{
+        u16 reg;
+        u32 data;
+        unsigned long *p;
+
+        /* RX stats */
+        reg = ALX_RX_STATS_BIN;
+        p = &hw->stats.rx_ok;
+        while (reg <=  ALX_RX_STATS_END) {
+                data = alx_read_mem32(hw, reg);
+                *p++ += data;
+                reg += 4;
+        }
+
+        /* TX stats */
+        reg = ALX_TX_STATS_BIN;
+        p = &hw->stats.tx_ok;
+        while (reg <= ALX_TX_STATS_END) {
+                data = alx_read_mem32(hw, reg);
+                *p++ += data;
+                reg += 4;
+        }
+}

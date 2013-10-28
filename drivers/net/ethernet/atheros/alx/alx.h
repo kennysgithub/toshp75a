@@ -102,10 +102,13 @@ struct alx_priv {
 
 	struct work_struct link_check_wk;
 	struct work_struct reset_wk;
+	struct work_struct update_stats_wk;
 
 	u16 msg_enable;
 
 	bool msi;
+
+	spinlock_t stats_lock;
 };
 
 extern const struct ethtool_ops alx_ethtool_ops;
