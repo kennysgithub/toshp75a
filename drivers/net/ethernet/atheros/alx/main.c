@@ -301,6 +301,8 @@ static int alx_poll(struct napi_struct *napi, int budget)
 	return 0;
 }
 
+static int fatal_reset_retry;
+
 static irqreturn_t alx_intr_handle(struct alx_priv *alx, u32 intr)
 {
 	struct alx_hw *hw = &alx->hw;
@@ -313,10 +315,16 @@ static irqreturn_t alx_intr_handle(struct alx_priv *alx, u32 intr)
 	intr &= alx->int_mask;
 
 	if (intr & ALX_ISR_FATAL) {
-		netif_warn(alx, hw, alx->dev,
+		if (fatal_reset_retry++ < 10) {
+			netif_warn(alx, hw, alx->dev,
 			   "fatal interrupt 0x%x, resetting\n", intr);
-		alx_schedule_reset(alx);
-		goto out;
+			alx_schedule_reset(alx);
+			goto out;
+		} else {
+			// FIXME: just ignore for now and see what happens
+			alx_write_mem32(hw, ALX_ISR, 0);
+			goto out;
+		};
 	}
 
 	if (intr & ALX_ISR_ALERT)
@@ -346,6 +354,7 @@ static irqreturn_t alx_intr_handle(struct alx_priv *alx, u32 intr)
 		alx_write_mem32(hw, ALX_IMR, alx->int_mask);
 
 	alx_write_mem32(hw, ALX_ISR, 0);
+	fatal_reset_retry = 0;
 
  out:
 	spin_unlock(&alx->irq_lock);
