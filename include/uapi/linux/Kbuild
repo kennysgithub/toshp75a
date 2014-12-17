@@ -1,4 +1,5 @@
 # UAPI Header export list
+header-y += android/
 header-y += byteorder/
 header-y += can/
 header-y += caif/
@@ -211,6 +212,7 @@ header-y += ivtv.h
 header-y += ixjuser.h
 header-y += jffs2.h
 header-y += joystick.h
+header-y += kcmp.h
 header-y += kdev_t.h
 header-y += kd.h
 header-y += kernelcapi.h

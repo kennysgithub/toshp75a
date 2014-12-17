@@ -618,6 +618,16 @@ S:	Maintained
 F:	drivers/iommu/amd_iommu*.[ch]
 F:	include/linux/amd-iommu.h
 
+AMD KFD
+M:      Oded Gabbay <oded.gabbay@amd.com>
+L:      dri-devel@lists.freedesktop.org
+T:      git git://people.freedesktop.org/~gabbayo/linux.git
+S:      Supported
+F:      drivers/gpu/drm/amd/amdkfd/
+F:      drivers/gpu/drm/radeon/radeon_kfd.c
+F:      drivers/gpu/drm/radeon/radeon_kfd.h
+F:      include/uapi/linux/kfd_ioctl.h
+
 AMD MICROCODE UPDATE SUPPORT
 M:	Andreas Herrmann <herrmann.der.user@googlemail.com>
 L:	amd64-microcode@amd64.org
@@ -919,6 +929,15 @@ ARM/CONTEC MICRO9 MACHINE SUPPORT
 M:	Hubert Feurstein <hubert.feurstein@contec.at>
 S:	Maintained
 F:	arch/arm/mach-ep93xx/micro9.c
+
+ARM/CORESIGHT FRAMEWORK AND DRIVERS
+M:	Mathieu Poirier <mathieu.poirier@linaro.org>
+L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+S:	Maintained
+F:	drivers/coresight/*
+F:	Documentation/trace/coresight.txt
+F:	Documentation/devicetree/bindings/arm/coresight.txt
+F:	Documentation/ABI/testing/sysfs-bus-coresight-devices-*
 
 ARM/CORGI MACHINE SUPPORT
 M:	Richard Purdie <rpurdie@rpsys.net>
@@ -1905,13 +1924,6 @@ L:	linux-bcache@vger.kernel.org
 W:	http://bcache.evilpiepirate.org
 S:	Maintained:
 F:	drivers/md/bcache/
-
-BECEEM BCS200/BCS220-3/BCSM250 WIMAX SUPPORT
-M: Kevin McKinney <klmckinney1@gmail.com>
-M: Matthias Beyer <mail@beyermatthias.de>
-L: devel@driverdev.osuosl.org
-S: Maintained
-F: drivers/staging/bcm*
 
 BEFS FILE SYSTEM
 S:	Orphan
@@ -3287,6 +3299,13 @@ S:	Supported
 F:	drivers/gpu/drm/exynos/
 F:	include/drm/exynos*
 F:	include/uapi/drm/exynos*
+
+DRM DRIVERS FOR FREESCALE IMX
+M:	Philipp Zabel <p.zabel@pengutronix.de>
+L:	dri-devel@lists.freedesktop.org
+S:	Maintained
+F:	drivers/gpu/drm/imx/
+F:	Documentation/devicetree/bindings/drm/imx/
 
 DRM DRIVERS FOR NVIDIA TEGRA
 M:	Thierry Reding <thierry.reding@gmail.com>
@@ -8026,6 +8045,12 @@ S:	Maintained
 F:	Documentation/serial/rocket.txt
 F:	drivers/tty/rocket*
 
+ROCKETPORT EXPRESS/INFINITY DRIVER
+M:	Kevin Cernekee <cernekee@gmail.com>
+L:	linux-serial@vger.kernel.org
+S:	Odd Fixes
+F:	drivers/tty/serial/rp2.*
+
 ROSE NETWORK LAYER
 M:	Ralf Baechle <ralf@linux-mips.org>
 L:	linux-hams@vger.kernel.org
@@ -9589,7 +9614,7 @@ F:	include/uapi/linux/tipc*.h
 F:	net/tipc/
 
 TILE ARCHITECTURE
-M:	Chris Metcalf <cmetcalf@tilera.com>
+M:	Chris Metcalf <cmetcalf@ezchip.com>
 W:	http://www.tilera.com/scm/
 S:	Supported
 F:	arch/tile/
