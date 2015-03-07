@@ -50,7 +50,7 @@
 #include "reg.h"
 
 const char alx_drv_name[] = "alx";
-
+static void alx_irq_disable(struct alx_priv *alx);
 
 static void alx_free_txbuf(struct alx_priv *alx, int entry)
 {
@@ -289,6 +289,8 @@ static int alx_poll(struct napi_struct *napi, int budget)
 	return work;
 }
 
+static int alx_fatal_counter = 32;
+
 static irqreturn_t alx_intr_handle(struct alx_priv *alx, u32 intr)
 {
 	struct alx_hw *hw = &alx->hw;
@@ -301,6 +303,12 @@ static irqreturn_t alx_intr_handle(struct alx_priv *alx, u32 intr)
 	intr &= alx->int_mask;
 
 	if (intr & ALX_ISR_FATAL) {
+		if (!--alx_fatal_counter) {
+			disable_irq(alx->hw.pdev->irq);
+			alx_irq_disable(alx);
+			printk(KERN_ERR "Too many ALX Fatal IRQs, killing dev IRQs\n");
+			goto out;
+		}
 		netif_warn(alx, hw, alx->dev,
 			   "fatal interrupt 0x%x, resetting\n", intr);
 		alx_schedule_reset(alx);
