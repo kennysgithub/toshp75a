@@ -1259,7 +1259,7 @@ static int alx_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	struct alx_priv *alx;
 	struct alx_hw *hw;
 	bool phy_configured;
-	int bars, err;
+	int err;
 
 	err = pci_enable_device_mem(pdev);
 	if (err)
@@ -1279,11 +1279,10 @@ static int alx_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		}
 	}
 
-	bars = pci_select_bars(pdev, IORESOURCE_MEM);
-	err = pci_request_selected_regions(pdev, bars, alx_drv_name);
+	err = pci_request_mem_regions(pdev, alx_drv_name);
 	if (err) {
 		dev_err(&pdev->dev,
-			"pci_request_selected_regions failed(bars:%d)\n", bars);
+			"pci_request_mem_regions failed\n");
 		goto out_pci_disable;
 	}
 
@@ -1409,7 +1408,7 @@ out_unmap:
 out_free_netdev:
 	free_netdev(netdev);
 out_pci_release:
-	pci_release_selected_regions(pdev, bars);
+	pci_release_mem_regions(pdev);
 out_pci_disable:
 	pci_disable_device(pdev);
 	return err;
@@ -1428,8 +1427,7 @@ static void alx_remove(struct pci_dev *pdev)
 
 	unregister_netdev(alx->dev);
 	iounmap(hw->hw_addr);
-	pci_release_selected_regions(pdev,
-				     pci_select_bars(pdev, IORESOURCE_MEM));
+	pci_release_mem_regions(pdev);
 
 	pci_disable_pcie_error_reporting(pdev);
 	pci_disable_device(pdev);
