@@ -595,7 +595,7 @@ static void ext2_splice_branch(struct inode *inode,
 	if (where->bh)
 		mark_buffer_dirty_inode(where->bh, inode);
 
-	inode->i_ctime = CURRENT_TIME_SEC;
+	inode->i_ctime = current_time(inode);
 	mark_inode_dirty(inode);
 }
 
@@ -622,7 +622,7 @@ static int ext2_get_blocks(struct inode *inode,
 			   u32 *bno, bool *new, bool *boundary,
 			   int create)
 {
-	int err = -EIO;
+	int err;
 	int offsets[4];
 	Indirect chain[4];
 	Indirect *partial;
@@ -639,7 +639,7 @@ static int ext2_get_blocks(struct inode *inode,
 	depth = ext2_block_to_path(inode,iblock,offsets,&blocks_to_boundary);
 
 	if (depth == 0)
-		return (err);
+		return -EIO;
 
 	partial = ext2_get_branch(inode, depth, offsets, chain, &err);
 	/* Simplest case - block found, no allocation needed */
@@ -761,7 +761,6 @@ static int ext2_get_blocks(struct inode *inode,
 	ext2_splice_branch(inode, iblock, partial, indirect_blks, count);
 	mutex_unlock(&ei->truncate_mutex);
 got_it:
-	*bno = le32_to_cpu(chain[depth-1].key);
 	if (count > blocks_to_boundary)
 		*boundary = true;
 	err = count;
@@ -772,6 +771,8 @@ cleanup:
 		brelse(partial->bh);
 		partial--;
 	}
+	if (err > 0)
+		*bno = le32_to_cpu(chain[depth-1].key);
 	return err;
 }
 
@@ -1308,7 +1309,7 @@ static int ext2_setsize(struct inode *inode, loff_t newsize)
 	__ext2_truncate_blocks(inode, newsize);
 	dax_sem_up_write(EXT2_I(inode));
 
-	inode->i_mtime = inode->i_ctime = CURRENT_TIME_SEC;
+	inode->i_mtime = inode->i_ctime = current_time(inode);
 	if (inode_needs_sync(inode)) {
 		sync_mapping_buffers(inode->i_mapping);
 		sync_inode_metadata(inode, 1);
@@ -1652,7 +1653,7 @@ int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
 	struct inode *inode = d_inode(dentry);
 	int error;
 
-	error = inode_change_ok(inode, iattr);
+	error = setattr_prepare(dentry, iattr);
 	if (error)
 		return error;
 
